@@ -12,7 +12,7 @@ import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
  * Minting: Algorithmic
  * Relative Stability: Pegged to Gold
  *
- * This is the contract meant to be governed by EGEngine. This contract is just the ERC20 implementation of the stablecoin system.
+ * This is the contract meant to be governed by EGCEngine. This contract is just the ERC20 implementation of the stablecoin system.
  */
 contract EarnGold is ERC20Burnable, Ownable {
     error EarnGold__MustBeMoreThanZero();
