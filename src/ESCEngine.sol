@@ -36,7 +36,7 @@ contract ESCEngine is ReentrancyGuard {
 
     address[] private s_collateralTokens;
 
-    EarnStableCoin private immutable i_egc;
+    EarnStableCoin private immutable i_esc;
 
     /**
      * Events
@@ -51,6 +51,7 @@ contract ESCEngine is ReentrancyGuard {
     error ESCEngine__TokenNotAllowed();
     error ESCEngine__TransferFailed();
     error ESCEngine__InsufficientHealthFactor(uint256 healthFactor);
+    error ESCEngine__MintFailed();
 
     /**
      * Modifiers
@@ -83,7 +84,7 @@ contract ESCEngine is ReentrancyGuard {
             s_collateralTokens.push(tokenAddresses[i]);
         }
 
-        i_egc = EarnStableCoin(egcAddress);
+        i_esc = EarnStableCoin(egcAddress);
     }
 
     /**
@@ -128,6 +129,11 @@ contract ESCEngine is ReentrancyGuard {
         uint256 healthFactor = _healthFactor(msg.sender);
         if (healthFactor < MIN_HEALTH_FACTOR) {
             revert ESCEngine__InsufficientHealthFactor(healthFactor);
+        }
+
+        bool success = i_esc.mint(msg.sender, amount);
+        if (!success) {
+            revert ESCEngine__MintFailed();
         }
     }
 
