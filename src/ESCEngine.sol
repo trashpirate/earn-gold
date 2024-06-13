@@ -73,7 +73,7 @@ contract ESCEngine is ReentrancyGuard {
     /**
      * Functions
      */
-    constructor(address[] memory tokenAddresses, address[] memory priceFeedAddresses, address egcAddress) {
+    constructor(address[] memory tokenAddresses, address[] memory priceFeedAddresses) {
         // Usd Price Feeds
         if (tokenAddresses.length != priceFeedAddresses.length) {
             revert ESCEngine__UnequalNumberOfTokenAndPriceFeedAddresses();
@@ -84,7 +84,7 @@ contract ESCEngine is ReentrancyGuard {
             s_collateralTokens.push(tokenAddresses[i]);
         }
 
-        i_esc = EarnStableCoin(egcAddress);
+        i_esc = new EarnStableCoin();
     }
 
     /**
