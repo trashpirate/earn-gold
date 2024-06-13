@@ -2,13 +2,13 @@
 pragma solidity ^0.8.20;
 
 import {Script} from "forge-std/Script.sol";
-import {EarnGold} from "./../src/EarnGold.sol";
+import {EarnStableCoin} from "./../src/EarnStableCoin.sol";
 import {HelperConfig} from "./HelperConfig.s.sol";
 
-contract DeployEarnGold is Script {
-    function run() external returns (EarnGold) {
+contract DeployEarnStableCoin is Script {
+    function run() external returns (EarnStableCoin) {
         vm.startBroadcast();
-        EarnGold token = new EarnGold();
+        EarnStableCoin token = new EarnStableCoin();
         vm.stopBroadcast();
         return token;
     }
