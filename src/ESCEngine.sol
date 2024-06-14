@@ -142,6 +142,13 @@ contract ESCEngine is ReentrancyGuard {
     function getHealthFactor() external view {}
 
     /**
+     * Getter Functions
+     */
+    function getESCAddress() external view returns (address) {
+        return address(i_esc);
+    }
+
+    /**
      * Public Functions
      */
     function getAccountCollateralValue(address user) public view returns (uint256 totalCollateralValueInUsd) {
