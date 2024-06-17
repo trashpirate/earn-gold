@@ -24,6 +24,10 @@ contract EarnStableCoin__UnitTest is Test {
 
     // helpers
     address USER = makeAddr("user");
+    uint256 DEPOSIT_AMOUNT = 1000 ether;
+
+    // events
+    event CollateralDeposited(address indexed user, address indexed token, uint256 indexed amount);
 
     // modifiers
     modifier skipFork() {
@@ -35,18 +39,26 @@ contract EarnStableCoin__UnitTest is Test {
 
     modifier funded(address account) {
         // fund user with eth
-        deal(account, 1000 ether);
-        ERC20Mock(weth).mint(USER, 1000 ether);
-        ERC20Mock(wbtc).mint(USER, 1000 ether);
+        deal(account, 10000 ether);
+        ERC20Mock(weth).mint(USER, 10000 ether);
+        ERC20Mock(wbtc).mint(USER, 10000 ether);
         _;
     }
 
     modifier minted(address account) {
-        uint256 amount = 1000 ether;
+        uint256 amount = 10000 ether;
         address owner = token.owner();
 
         vm.prank(owner);
         token.mint(USER, amount);
+        _;
+    }
+
+    modifier deposited(address account) {
+        vm.startPrank(USER);
+        ERC20Mock(weth).approve(address(engine), DEPOSIT_AMOUNT);
+        engine.depositCollateral(weth, DEPOSIT_AMOUNT);
+        vm.stopPrank();
         _;
     }
 
@@ -94,6 +106,19 @@ contract EarnStableCoin__UnitTest is Test {
         assertEq(amount, ERC20Mock(weth).balanceOf(address(engine)));
     }
 
+    function test__unit__ESCEngine__EmitEvent__DepositCollateral() public funded(USER) {
+        uint256 amount = 200 ether;
+
+        vm.prank(USER);
+        ERC20Mock(weth).approve(address(engine), amount);
+
+        vm.expectEmit(true, true, true, true);
+        emit CollateralDeposited(USER, weth, amount);
+
+        vm.prank(USER);
+        engine.depositCollateral(weth, amount);
+    }
+
     function test__unit__ESCEngine__RevertWhen__DepositCollateralIsZero() public funded(USER) {
         uint256 amount = 200 ether;
 
@@ -104,5 +129,56 @@ contract EarnStableCoin__UnitTest is Test {
 
         vm.prank(USER);
         engine.depositCollateral(weth, 0);
+    }
+
+    function test__unit__ESCEngine__RevertWhen__WrongToken() public funded(USER) {
+        uint256 amount = 200 ether;
+        address tokenAddress = makeAddr("token");
+
+        vm.prank(USER);
+        ERC20Mock(weth).approve(address(engine), amount);
+
+        vm.expectRevert(ESCEngine.ESCEngine__TokenNotAllowed.selector);
+
+        vm.prank(USER);
+        engine.depositCollateral(tokenAddress, amount);
+    }
+
+    function test__unit__ESCEngine__RevertWhen__TransferFails() public funded(USER) {
+        uint256 amount = 200 ether;
+
+        vm.prank(USER);
+        ERC20Mock(weth).approve(address(engine), amount);
+
+        vm.mockCall(
+            weth,
+            abi.encodeWithSelector(ERC20Mock(weth).transferFrom.selector, USER, address(engine), amount),
+            abi.encode(false)
+        );
+        vm.expectRevert(ESCEngine.ESCEngine__TransferFailed.selector);
+
+        vm.prank(USER);
+        engine.depositCollateral(weth, amount);
+    }
+
+    /**
+     * Mint ESC
+     */
+    function test__unit__ESCEngine__MintESC() public funded(USER) deposited(USER) {
+        uint256 amount = 100 ether;
+
+        vm.prank(USER);
+        engine.mintESC(amount);
+
+        assertEq(amount, token.balanceOf(USER));
+    }
+
+    function test__unit__ESCEngine__RevertWhen__InsufficientHealthFactor() public funded(USER) deposited(USER) {
+        uint256 amount = 700 ether;
+
+        vm.prank(USER);
+        engine.mintESC(amount);
+
+        assertEq(amount, token.balanceOf(USER));
     }
 }

@@ -90,7 +90,45 @@ contract ESCEngine is ReentrancyGuard {
     /**
      * External Functions
      */
-    function depositCollateralAndMintESC() external {}
+
+    /**
+     * @notice follows CEI
+     * @param tokenCollateralAddress The address fo the token to deposit as collateral
+     * @param amountCollateral The amount of collateral to deposit
+     * @param amountEscToMint Mint amount
+     * @notice this funciton will deposit collateral and mint ESC in one transaction
+     */
+    function depositCollateralAndMintESC(
+        address tokenCollateralAddress,
+        uint256 amountCollateral,
+        uint256 amountEscToMint
+    ) external {
+        depositCollateral(tokenCollateralAddress, amountCollateral);
+        mintESC(amountEscToMint);
+    }
+
+    /**
+     */
+    function redeemCollateralForESC() external {}
+    function redeemCollateral() external {}
+
+    function burnESC() external {}
+    function liquidate() external {}
+
+    /**
+     * Getter Functions
+     */
+    function getESCAddress() external view returns (address) {
+        return address(i_esc);
+    }
+
+    function getHealthFactor(address account) external view returns (uint256) {
+        return _healthFactor(account);
+    }
+
+    /**
+     * Public Functions
+     */
 
     /**
      * @notice follows CEI
@@ -98,7 +136,7 @@ contract ESCEngine is ReentrancyGuard {
      * @param amountCollateral The amount of collateral to deposit
      */
     function depositCollateral(address tokenCollateralAddress, uint256 amountCollateral)
-        external
+        public
         isAllowedToken(tokenCollateralAddress)
         moreThanZero(amountCollateral)
         nonReentrant
@@ -113,16 +151,11 @@ contract ESCEngine is ReentrancyGuard {
     }
 
     /**
-     */
-    function redeemCollateralForESC() external {}
-    function redeemCollateral() external {}
-
-    /**
      * @notice follows CEI
      * @param amount Mint amount
      * @notice must have more collateral value than the minimum threshold
      */
-    function mintESC(uint256 amount) external moreThanZero(amount) nonReentrant {
+    function mintESC(uint256 amount) public moreThanZero(amount) nonReentrant {
         s_minted[msg.sender] += amount;
 
         // revert if minted too much
@@ -137,20 +170,6 @@ contract ESCEngine is ReentrancyGuard {
         }
     }
 
-    function burnESC() external {}
-    function liquidate() external {}
-    function getHealthFactor() external view {}
-
-    /**
-     * Getter Functions
-     */
-    function getESCAddress() external view returns (address) {
-        return address(i_esc);
-    }
-
-    /**
-     * Public Functions
-     */
     function getAccountCollateralValue(address user) public view returns (uint256 totalCollateralValueInUsd) {
         for (uint256 i = 0; i < s_collateralTokens.length; i++) {
             address token = s_collateralTokens[i];
@@ -180,16 +199,22 @@ contract ESCEngine is ReentrancyGuard {
      */
     function _healthFactor(address user) private view returns (uint256) {
         (uint256 totalEscMinted, uint256 collateralValueInUsd) = _getAccountInfo(user);
-        uint256 collateralAdjustedForThreshold = (collateralValueInUsd * LIQUIDATION_THRESHOLD) / LIQUIDATION_PRECISION;
 
-        // Example liquidiation:
-        // $150 EARN / 100 ESC = 1.5
-        // 150 * 50 = 7500 => 7500 / 100 = 75 => 75 / 100 = 0.75 < 1
+        if (totalEscMinted > 0) {
+            uint256 collateralAdjustedForThreshold =
+                (collateralValueInUsd * LIQUIDATION_THRESHOLD) / LIQUIDATION_PRECISION;
+            // Example liquidiation:
+            // $150 EARN / 100 ESC = 1.5
+            // 150 * 50 = 7500 => 7500 / 100 = 75 => 75 / 100 = 0.75 < 1
 
-        // Example no liquidation:
-        // $1000 EARN / 100 ESC = 1.5
-        // 1000 * 50 = 50000 => 50000 / 100 = 500 => 500 / 100 = 5 > 1
-        return (collateralAdjustedForThreshold / totalEscMinted);
+            // Example no liquidation:
+            // $1000 EARN / 100 ESC = 1.5
+            // 1000 * 50 = 50000 => 50000 / 100 = 500 => 500 / 100 = 5 > 1
+
+            return (collateralAdjustedForThreshold / totalEscMinted);
+        } else {
+            return 0;
+        }
     }
 
     // function _revertIfInsufficientHealthFactor(address user) internal view {
